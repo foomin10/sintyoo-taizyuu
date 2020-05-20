@@ -90,8 +90,8 @@ end
 
 def main
   load_config
-  command = "update"
-  #command = "view"
+  #command = "update"
+  command = "view"
   source = YAML.load_stream(File.read("source.yaml"))[-1]["source"]
 
   if command == "update"
@@ -106,7 +106,7 @@ def main
       }
     }
   else
-    nendo = 1999
+    nendo = 2018
     nenrei = 17
     h = source.fetch(nendo)
     statsDataId = h["statsDataId"].fetch(nenrei)
