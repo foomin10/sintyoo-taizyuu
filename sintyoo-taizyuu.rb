@@ -58,7 +58,7 @@ def create_data_inf(class_inf, data_inf_value)
 end
 
 def main_loop(nendo, nenrei, statsDataId)
-  uri = URI "http://api.e-stat.go.jp/rest/3.0/app/json/getStatsData?appId=#{$appId}&lang=J&statsDataId=#{statsDataId}&metaGetFlg=Y&cntGetFlg=N&explanationGetFlg=N&annotationGetFlg=N&sectionHeaderFlg=2&cdCat04=0000010"
+  uri = URI "http://api.e-stat.go.jp/rest/3.0/app/json/getStatsData?appId=#{$appId}&lang=J&statsDataId=#{statsDataId}&metaGetFlg=Y&cntGetFlg=N&explanationGetFlg=N&annotationGetFlg=N&sectionHeaderFlg=2&cdCat04=0000010&cdTime=#{nendo}100000"
 
   filename = "#{nenrei}sai-zyosi.json"
 
@@ -90,7 +90,8 @@ end
 
 def main
   load_config
-  command = "view"
+  command = "update"
+  #command = "view"
   source = YAML.load_stream(File.read("source.yaml"))[-1]["source"]
 
   if command == "update"
