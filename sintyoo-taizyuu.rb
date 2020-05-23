@@ -57,16 +57,17 @@ def create_data_inf(class_inf, data_inf_value)
   DataInf.new(seibetu, nenrei, sintyoo, atai, nendo, taizyuu)
 end
 
-def main_loop(nendo, nenrei, statsDataId)
+def main_loop(nendo, nenrei, statsDataId, command)
   uri = URI "http://api.e-stat.go.jp/rest/3.0/app/json/getStatsData?appId=#{$appId}&lang=J&statsDataId=#{statsDataId}&metaGetFlg=Y&cntGetFlg=N&explanationGetFlg=N&annotationGetFlg=N&sectionHeaderFlg=2&cdCat04=0000010&cdTime=#{nendo}100000"
 
   filename = "#{nenrei}sai-zyosi.json"
+  filepath = "#{ENV["TEMP"]}/#{nendo}/#{nenrei}sai-zyosi.json"
 
-  unless FileTest.exist?(filename)
-    FileUtils.move(open(uri).path, filename)
+  unless FileTest.exist?(filepath)
+    FileUtils.move(open(uri).path, filepath)
   end
 
-  json = File.read(filename)
+  json = File.read(filepath)
   h = JSON.parse(json)["GET_STATS_DATA"]
   unless h["RESULT"]["STATUS"] == 0
     raise h["RESULT"]["ERROR_MSG"]
@@ -79,29 +80,63 @@ def main_loop(nendo, nenrei, statsDataId)
 
   class_obj_time = class_inf.find {|class_obj| class_obj["@id"] == "time" }
   nendo = class_obj_time["CLASS"]["@name"][0..-2].to_i
-  puts "#{table_title}（#{nendo}年度）"
 
   data_inf = data_inf.map {|data_inf_value|
     create_data_inf(class_inf, data_inf_value)
   }
-  p data_inf.size
-  p *data_inf #.values_at(0..2, -3..-1)
+
+  if command == "_view"
+    puts "#{table_title}（#{nendo}年度）"
+    p data_inf.size
+    p *data_inf #.values_at(0..2, -3..-1)
+  end
+  
+  create_api(nendo, nenrei, data_inf, command)
+end
+
+def create_api(nendo, nenrei, data_inf, command)
+  filename = "#{nenrei}sai-zyosi.json"
+  filepath = "api/#{nendo}/#{nenrei}sai-zyosi.json"
+
+  unless FileTest.exist?(filepath)
+    data_inf = data_inf.map {|data_inf_value|
+      data_inf_value.to_h.slice(:seibetu, :nenrei, :sintyoo, :taizyuu)
+    }
+    .group_by {|data_inf_value| data_inf_value[:sintyoo] }
+    .transform_values {|data_inf_value| data_inf_value[0] }
+
+    json = JSON.dump(data_inf)
+    FileUtils.mkdir_p(File.dirname(filepath))
+    open(filepath, "w") {|f|
+      f.puts(json)
+    }
+  end
+
+  h = JSON.load(File.read(filepath))
+  if command == "view"
+    p data_inf.size
+    h.each {|k, v|
+      p v #.values_at(0..2, -3..-1)
+    }
+  end
 end
 
 def main
   load_config
-  #command = "update"
+  raise unless FileUtils.pwd == File.dirname(File.expand_path(__FILE__))
+  ENV["TEMP"] = "tmp"
+  FileUtils.mkdir_p("#{ENV["TEMP"]}")
+
   command = "view"
+  command = "update"
   source = YAML.load_stream(File.read("source.yaml"))[-1]["source"]
 
   if command == "update"
     source.each {|nendo, h|
       h["statsDataId"].each {|nenrei, statsDataId|
         #p [nendo, nenrei, statsDataId]
-        FileUtils.mkdir_p("api/#{nendo}")
-        FileUtils.cd("api/#{nendo}") do
-          main_loop(nendo, nenrei, statsDataId)
-        end
+        FileUtils.mkdir_p("#{ENV["TEMP"]}/#{nendo}")
+        main_loop(nendo, nenrei, statsDataId, command)
         sleep 0.2
       }
     }
@@ -111,9 +146,7 @@ def main
     h = source.fetch(nendo)
     statsDataId = h["statsDataId"].fetch(nenrei)
     #p [nendo, nenrei, statsDataId]
-    FileUtils.cd("api/#{nendo}") do
-      main_loop(nendo, nenrei, statsDataId)
-    end
+    main_loop(nendo, nenrei, statsDataId, command)
   end
 end
 
