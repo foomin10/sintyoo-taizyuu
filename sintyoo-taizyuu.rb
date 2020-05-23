@@ -88,36 +88,32 @@ def main_loop(nendo, nenrei, statsDataId, command)
     puts "#{table_title}（#{nendo}年度）"
     p data_inf.size
     p *data_inf #.values_at(0..2, -3..-1)
+  else
+    create_api(nendo, nenrei, data_inf, command)
   end
-  
-  create_api(nendo, nenrei, data_inf, command)
 end
 
 def create_api(nendo, nenrei, data_inf, command)
-  filepath = "api/#{nendo}/#{nenrei}/%s/sai-zyosi.json"
+  filepath_base = "api/#{nendo}/#{nenrei}sai/%scm/zyosi.json"
 
-  unless FileTest.exist?(filepath)
-    sintyoo_betu_data_inf = data_inf.map {|data_inf_value|
-      data_inf_value.to_h.slice(:seibetu, :nenrei, :sintyoo, :nendo, :taizyuu)
+  sintyoo_betu_data_inf = data_inf.map {|data_inf_value|
+    data_inf_value.to_h.slice(:nendo, :seibetu, :nenrei, :sintyoo, :taizyuu)
+  }
+  .group_by {|data_inf_value| data_inf_value[:sintyoo] }
+  .transform_values {|data_inf_value| data_inf_value[0] }
+
+  sintyoo_betu_data_inf.each {|sintyoo, data_inf|
+    json = JSON.dump(data_inf)
+    filepath = filepath_base % data_inf[:sintyoo]
+    FileUtils.mkdir_p(File.dirname(filepath))
+    open(filepath, "w") {|f|
+      f.puts(json)
     }
-    .group_by {|data_inf_value| data_inf_value[:sintyoo] }
-    .transform_values {|data_inf_value| data_inf_value[0] }
+  }
 
-    sintyoo_betu_data_inf.each {|sintyoo, data_inf|
-      json = JSON.dump(data_inf)
-      filepath = filepath % sintyoo
-      FileUtils.mkdir_p(File.dirname(filepath))
-      open(filepath, "w") {|f|
-        f.puts(json)
-      }
-    }
-  end
-
-  Dir.glob(filepath % "*") {|filepath|
+  Dir.glob(filepath_base % "*") {|filepath|
     h = JSON.load(File.read(filepath))
-    if command == "view"
-      p h #.values_at(0..2, -3..-1)
-    end
+    p h #.values_at(0..2, -3..-1)
   }
 end
 
