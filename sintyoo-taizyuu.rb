@@ -23,7 +23,7 @@ DataInf = Struct.new(:seibetu, :nenrei, :sintyoo, :atai, :nendo, :taizyuu)
 
 def load_config
   $config = YAML.load_stream(File.read("config.yaml"))[-1]
-  $appId = $config["appId"]
+  $app_id = $config["appId"]
 end
 
 def create_data_inf(class_inf, data_inf_value)
@@ -57,8 +57,8 @@ def create_data_inf(class_inf, data_inf_value)
   DataInf.new(seibetu, nenrei, sintyoo, atai, nendo, taizyuu)
 end
 
-def main_loop(nendo, nenrei, statsDataId, command)
-  uri = URI "http://api.e-stat.go.jp/rest/3.0/app/json/getStatsData?appId=#{$appId}&lang=J&statsDataId=#{statsDataId}&metaGetFlg=Y&cntGetFlg=N&explanationGetFlg=N&annotationGetFlg=N&sectionHeaderFlg=2&cdCat04=0000010&cdTime=#{nendo}100000"
+def main_loop(nendo, nenrei, stats_data_id, command)
+  uri = URI "http://api.e-stat.go.jp/rest/3.0/app/json/getStatsData?appId=#{$app_id}&lang=J&statsDataId=#{stats_data_id}&metaGetFlg=Y&cntGetFlg=N&explanationGetFlg=N&annotationGetFlg=N&sectionHeaderFlg=2&cdCat04=0000010&cdTime=#{nendo}100000"
 
   filepath = "#{ENV["TEMP"]}/#{nendo}/#{nenrei}sai-zyosi.json"
 
@@ -129,10 +129,10 @@ def main
 
   if command == "update"
     source.each {|nendo, h|
-      h["statsDataId"].each {|nenrei, statsDataId|
-        #p [nendo, nenrei, statsDataId]
+      h["statsDataId"].each {|nenrei, stats_data_id|
+        #p [nendo, nenrei, stats_data_id]
         FileUtils.mkdir_p("#{ENV["TEMP"]}/#{nendo}")
-        main_loop(nendo, nenrei, statsDataId, command)
+        main_loop(nendo, nenrei, stats_data_id, command)
         sleep 0.2
       }
     }
@@ -140,9 +140,9 @@ def main
     nendo = 2018
     nenrei = 17
     h = source.fetch(nendo)
-    statsDataId = h["statsDataId"].fetch(nenrei)
-    #p [nendo, nenrei, statsDataId]
-    main_loop(nendo, nenrei, statsDataId, command)
+    stats_data_id = h["statsDataId"].fetch(nenrei)
+    #p [nendo, nenrei, stats_data_id]
+    main_loop(nendo, nenrei, stats_data_id, command)
   end
 end
 
